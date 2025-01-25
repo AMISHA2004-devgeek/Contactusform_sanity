@@ -15,31 +15,33 @@ const AnimatedContactForm = () => {
   });
   const [status, setStatus] = useState('');
 
-  // This effect is responsible for showing the form after 3 seconds
+
   useEffect(() => {
     const timer = setTimeout(() => setShowForm(true), 3000);
-    return () => clearTimeout(timer);  // Cleanup the timer
+    return () => clearTimeout(timer);  
   }, []);
 
-  // Check if the email already exists in the "emailofusers" schema
+  
   const checkEmailExists = async (email) => {
-    const query = `*[_type == "emailofusers" && email == $email][0]`;
+    const query = `*[_type == "formData" && email == $email]{email}`;
+   
     const params = { email };
     try {
       const result = await client.fetch(query, params);
-      return result ? true : false;
+      console.log(result);
+      return result.length > 0;
     } catch (err) {
       console.error('Error checking email:', err);
       return false;
     }
   };
 
-  // Handle form submission
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('Submitting...');
     
-    // Check if the email already exists
+   
     const emailExists = await checkEmailExists(formData.email);
     if (emailExists) {
       setStatus('Please wait a moment until we evaluate your previous submission before you can submit again.');
@@ -47,16 +49,10 @@ const AnimatedContactForm = () => {
     }
     
     try {
-      // Send form data to Sanity
+
       await client.create({
         _type: 'formData',
         ...formData
-      });
-      
-      // Add the email to the "emailofusers" schema
-      await client.create({
-        _type: 'emailofusers',
-        email: formData.email
       });
 
       setStatus('Message sent successfully!');
