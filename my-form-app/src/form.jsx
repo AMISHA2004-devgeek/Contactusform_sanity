@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { client } from './sanityClient';
-//Importing icons
+// Importing icons
 import { Send, User, Mail, MessageSquare, Building2 } from 'lucide-react';
-//Importing type-writer animation
+// Importing type-writer animation
 import { Typewriter } from 'react-simple-typewriter';
 
 const AnimatedContactForm = () => {
@@ -15,44 +15,68 @@ const AnimatedContactForm = () => {
   });
   const [status, setStatus] = useState('');
 
+  // This effect is responsible for showing the form after 3 seconds
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowForm(true);
-    }, 3000);
-
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => setShowForm(true), 3000);
+    return () => clearTimeout(timer);  // Cleanup the timer
   }, []);
+
+  // Check if the email already exists in the "emailofusers" schema
+  const checkEmailExists = async (email) => {
+    const query = `*[_type == "emailofusers" && email == $email][0]`;
+    const params = { email };
+    try {
+      const result = await client.fetch(query, params);
+      return result ? true : false;
+    } catch (err) {
+      console.error('Error checking email:', err);
+      return false;
+    }
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus('Submitting...');
+    
+    // Check if the email already exists
+    const emailExists = await checkEmailExists(formData.email);
+    if (emailExists) {
+      setStatus('Please wait a moment until we evaluate your previous submission before you can submit again.');
+      return;
+    }
+    
+    try {
+      // Send form data to Sanity
+      await client.create({
+        _type: 'formData',
+        ...formData
+      });
+      
+      // Add the email to the "emailofusers" schema
+      await client.create({
+        _type: 'emailofusers',
+        email: formData.email
+      });
+
+      setStatus('Message sent successfully!');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      setStatus('An error occurred. Please try again later.');
+      console.error('Error submitting form:', error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus('Submitting...');
-    try {
-      // Send form data to Sanity
-      const response = await client.create({
-        _type: 'formData', 
-        name: formData.name,
-        email: formData.email,
-        subject: formData.subject,
-        message: formData.message,
-      });
-
-      setStatus('Message sent successfully!');
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch (error) {
-      setStatus('An error occurred.');
-      console.error('Error submitting to Sanity:', error);
-    }
-  };
-
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden ${showForm ? 'bg-slate-900' : 'bg-white'} transition-colors duration-1000`}>
       {/* SVG Animation */}
       <div className={`absolute inset-0 transition-all duration-1000 ${showForm ? 'opacity-40' : 'opacity-100'}`}>
+    
         <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <defs>
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -112,9 +136,9 @@ const AnimatedContactForm = () => {
 
           <g fill="#026e3f" opacity="0.3">
             <text x="50" y="40" fontFamily="monospace">@</text>
-            <text x="320" y="160" fontFamily="monospace">{`{}`}</text>
+            <text x="320" y="160" fontFamily="monospace"></text>
             <text x="80" y="120" fontFamily="monospace">&lt;/&gt;</text>
-            <text x="280" y="40" fontFamily="monospace">[]</text>
+            <text x="280" y="40" fontFamily="monospace"></text>
             <animateTransform attributeName="transform"
                           type="translate"
                           values="0,0; 0,5; 0,0"
@@ -227,11 +251,9 @@ const AnimatedContactForm = () => {
                        repeatCount="indefinite"/>
             </line>
           </g>
-        </svg>
-      </div>
 
-      
-      <div className={`absolute inset-0 transition-all duration-1000 ${showForm ? 'opacity-40' : 'opacity-100'}`} />
+              </svg>
+      </div>
 
       {/* Contact Form */}
       <div className={`relative w-full max-w-xl transition-all duration-1000 ${showForm ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -257,74 +279,75 @@ const AnimatedContactForm = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-emerald-500" />
+                  <User className="h-5 w-5 text-emerald-400" />
                 </div>
                 <input
                   type="text"
                   name="name"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-emerald-800/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-200 placeholder-slate-400"
-                  placeholder="Your Name"
                   value={formData.name}
                   onChange={handleChange}
+                  placeholder="Your Name"
+                  className="pl-10 py-3 rounded-lg w-full text-lg border border-slate-700 bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
-
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-emerald-500" />
+                  <Mail className="h-5 w-5 text-emerald-400" />
                 </div>
                 <input
                   type="email"
                   name="email"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-emerald-800/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-200 placeholder-slate-400"
-                  placeholder="Your Email"
                   value={formData.email}
                   onChange={handleChange}
+                  placeholder="Your Email"
+                  className="pl-10 py-3 rounded-lg w-full text-lg border border-slate-700 bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
-
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Building2 className="h-5 w-5 text-emerald-500" />
+                  <Building2 className="h-5 w-5 text-emerald-400" />
                 </div>
                 <input
                   type="text"
                   name="subject"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-emerald-800/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-200 placeholder-slate-400"
-                  placeholder="Subject"
                   value={formData.subject}
                   onChange={handleChange}
+                  placeholder="Subject"
+                  className="pl-10 py-3 rounded-lg w-full text-lg border border-slate-700 bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  required
                 />
               </div>
-
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MessageSquare className="h-5 w-5 text-emerald-500" />
+                  <MessageSquare className="h-5 w-5 text-emerald-400" />
                 </div>
                 <textarea
                   name="message"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-emerald-800/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-200 placeholder-slate-400"
-                  placeholder="Your Message"
                   value={formData.message}
                   onChange={handleChange}
+                  placeholder="Your Message"
                   rows="4"
+                  className="pl-10 py-3 rounded-lg w-full text-lg border border-slate-700 bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
 
-              <div className="flex justify-center">
+              <div className="relative">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-emerald-500 text-white font-semibold text-lg rounded-lg shadow-lg transition duration-300 ease-in-out hover:bg-emerald-600"
+                  className="w-full py-3 rounded-lg bg-emerald-500 text-white text-lg font-semibold shadow-md hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500"
                 >
-                  <Send className="inline mr-2" />
-                  Send Message
+                 <Send className="inline mr-2" />
+                 Send Message
                 </button>
+                {status && (
+    <div className="mt-4 text-center text-sm text-emerald-400">
+      {status}
+    </div>
+  )}
               </div>
-
-              <div className="text-center mt-4 text-slate-400">{status}</div>
             </form>
           </div>
         </div>

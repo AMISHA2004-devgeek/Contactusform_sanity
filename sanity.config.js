@@ -7,7 +7,7 @@ export default defineConfig({
   name: 'default',
   title: 'My Sanity Project',
 
-  projectId: 'ie1x9ghm',
+  projectId: 's1605yga',
   dataset: 'production',
 
   plugins: [structureTool(), visionTool()],

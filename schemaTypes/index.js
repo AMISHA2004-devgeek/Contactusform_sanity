@@ -1,2 +1,3 @@
+import email from './email';
 import formData from './formSchema';
-export const schemaTypes = [formData]
+export const schemaTypes = [formData,email]
